@@ -119,12 +119,18 @@ class Game:
             for i in range(self.board_height):
                 row = self.board[i]
                 row = self.remove_zeroes(row)
-                print(f"row i after removing zeroes: {i}; {row}")
                 self.sum_numbers(row)
-                print(f"row i: {i} after sum; {row}")
                 row = self.remove_zeroes(row)
                 row = self.add_zeros_back(row, not moving_right)
                 self.board[i] = row
+
+
+    def check_win(self):
+        for row in self.board:
+            for value in row:
+                if value == 2048:
+                    print("nice! you won!")
+                    exit()
 
     def game_loop(self):
         while True:
@@ -133,6 +139,12 @@ class Game:
             # handle input
             move = self.ask_move()
             self.handle_move(move)
+            self.check_win()
+
+            # check loss
+            if not self.get_empty_indexes():
+                print("oh no you lost!")
+                break 
 
 if __name__ == "__main__":
     Game()
