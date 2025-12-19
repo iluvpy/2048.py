@@ -1,136 +1,138 @@
-from enum import Enum
+import random
 from pprint import pprint
-import random 
-
-
-class Position:
-    x: int
-    y: int
-    def __init__(self, x: int, y: int) -> None:
-        self.x = x
-        self.y = y
-
-class BoardSquare:
-    def __init__(self) -> None:
-        self.is_empty = True
-        self.value = 0
-
-    """
-    Returns: True if the square is empty and False if not
-    """
-    def is_empty(self) -> bool:
-        return self.is_empty
-    
-class Board:
-    def __init__(self, w: int=4, h: int=4):
-        self.w = w
-        self.h = h
-        self.board = [[BoardSquare() for _y in range(w)] for _x in range(h)]
-    
-    """
-    Returns: a list containing the indexes to empty squares
-    """
-    def get_empty_squares(self) -> list[int]:
-        empty_indexes = []
-        for i, layer in enumerate(self.board):
-            for j, square in enumerate(layer):
-                if square.is_empty():
-                    empty_indexes.append([i, j])
-
-        return empty_indexes
-    
-    """
-    Description: sets the square at param:pos to param:value
-    Args: pos for position (index x, y) and value
-    """
-    def set_square(self, pos: Position, value: int) -> None:
-        self.board[pos.y][pos.x].value = value
-
-    """
-    Returns the value at param:pos
-    """
-    def get(self, pos: Position):
-        return self.board[pos.y][pos.x].value
 
 class Game:
     def __init__(self):
-        self.board = Board()
-        self.print_welcome()
+        
+        self.board_width = 4
+        self.board_height = 4
+        self.board  = [[0 for _j in range(self.board_width)] for _i in range(self.board_height)]
         self.game_loop()
-
-    """
-    Description: prints welcome message
-    """
-    def print_welcome(self):
-        print("Welcome to 2048.py")
-        print("write l for left, r for right, u for up and d for down")
-        print("Have fun!")
-        print()
-        print()
-
-    """
-    Description: adds a "2" to the board at a random empty position
-    """
-    def add_random2(self):
-        empty_squares = self.board.get_empty_squares()
-        pos = random.choice(empty_squares)
-        self.board.set_square(pos, 2)
-
-    """
-    Description: prints the board to the console
-    """
+    
     def print_board(self):
-        for y in range(self.board.h):
-            for x in range(self.board.w):
-                value = self.board.get(Position(x, y))
-                print(value, end=" "*(5 - len(str(value))))
-            print()
-            print()
+        for i in range(self.board_height):
+            for j in range(self.board_width):
+                print(self.board[i][j], end=" ")
             print()
 
-    """
-    Description: handles player input
-    Returns: valid player input (r/l/u/d)
-    """
-    def handle_input(self):
+    def ask_move(self):
+        possible_moves = "wasd"
+        print("you can quit with q")
         while True:
-            in_ = input("(l/r/u/d)>")
-            moves = ["l", "r", "u", "d"]
-            for move in moves:
-                if move == in_:
-                    return in_
-            print("please input only valid moves")
-
-    """
-    Description: moves the squares based on the player input (up, down, left, right) and adds
-    same value squares together
-    """
-    def move_squares(self, direction: str):
-
-        delta_pos = []
-        if direction == "l":
-            delta_pos = [0, 1]
-        elif direction == "r":
-            delta_pos =  [0, -1]
-        elif direction == "u":
-            delta_pos = [-1, 0]
-        elif direction == "d":
-            delta_pos = [1, 0]
+            move = input("move [w, a, s, d]> ")
+            if move == "q":
+                exit()
+            if move not in possible_moves:
+                print("not a possible move")
+                continue
+            return move
         
+    def get_empty_indexes(self):
+        empty_indexes = []
+        for i, line in enumerate(self.board):
+            for j, val in enumerate(line):
+                if not val:
+                    empty_indexes.append([i, j])
+        return empty_indexes
+    
+    # adds a random 2 to the board
+    def add2(self):
+        empty_indexes = self.get_empty_indexes()
+        if len(empty_indexes) > 0:
+            random_empty = random.choice(empty_indexes)
+            i, j = random_empty
+            self.board[i][j] = 2
         
+    def add_zeros_back(self, target_row_or_col, append):
+        while len(target_row_or_col) < self.board_height:
+            if append:
+                target_row_or_col.append(0)
+            else:
+                target_row_or_col = [0] + target_row_or_col 
+        return target_row_or_col
 
+    def sum_numbers(self, col_or_row):
+        # add equal numbers together
+        for k in range(len(col_or_row) - 1):
+            if col_or_row[k] == col_or_row[k + 1]:
+                col_or_row[k + 1] = col_or_row[k] + col_or_row[k + 1]
+                col_or_row[k] = 0
+    
+    def remove_zeroes(self, col_or_row):
+        new = []
+        for e in col_or_row:
+            if e:
+                new.append(e)
+        return new
 
-    """
-    Description: game loop that handles input and output and contains
-    the game logic
-    """
+    def handle_move(self, move):
+        # possible moves are  w a s d for up, left, down, right
+        # board looks like this
+        # 0 0 0 0
+        # 0 2 0 0
+        # 0 2 0 0
+        # 0 0 0 0
+
+        moving_vertical = False
+        moving_up = False
+        moving_right = False
+        if move == "w":
+            moving_vertical = True
+            moving_up = True
+
+        # if move == "a":
+        #     pass
+
+        if move == "s":
+            moving_vertical = True
+        #   moving_right_or_up = False
+        if move == "d":
+            moving_right = True
+        
+        # algorithm
+        # iterate over the board until i find a number
+        # then isolate vertical/horizontal axis (row or columns)
+        # remove zeros
+        # add equal numbers together following moving_right_or_up direction
+        # add zeros back (prepend or append)
+        new_board = self.board.copy()
+        if moving_vertical:
+            columns = []
+            for i in range(self.board_width):
+                column = [] # 
+                for j in range(self.board_height):
+                    value = self.board[j][i]
+                    if value:
+                        column.append(value)
+
+                self.sum_numbers(column)
+                column = self.remove_zeroes(column) # sum numbers method adds when 2 numbers are added zeroes
+                # append or prepend zeros
+                column = self.add_zeros_back(column, moving_up)
+                columns.append(column)
+
+            # copy the columns into the new board
+            for i, column in enumerate(columns):
+                for j, value in enumerate(column):
+                    new_board[j][i] = value
+        else:
+            for i in range(self.board_height):
+                row = self.board[i]
+                row = self.remove_zeroes(row)
+                print(f"row i after removing zeroes: {i}; {row}")
+                self.sum_numbers(row)
+                print(f"row i: {i} after sum; {row}")
+                row = self.remove_zeroes(row)
+                row = self.add_zeros_back(row, not moving_right)
+                self.board[i] = row
+
     def game_loop(self):
         while True:
+            self.add2()
             self.print_board()
-            player_input = self.handle_input()
-            self.move_squares()
-        
-        
+            # handle input
+            move = self.ask_move()
+            self.handle_move(move)
+
 if __name__ == "__main__":
-    game = Game()
-    
+    Game()
